@@ -1,0 +1,361 @@
+# include <iostream>
+#include<fstream>
+# include <string>
+# include <vector>
+//#include <direct.h>
+using namespace std;
+
+/****************************************************************
+** mod- defines a new mod operation
+** Parameters:
+	** int x
+	** int m
+** returns another int- x mod m
+** Basically we use it becasue: mod(m,m)=0 and mod(-1,m)= m-1
+	This allows our (i,j) positions in our table to wrap around once
+	i or j go outside the edges of the table
+*****************************************************************/
+int mod(int x, int m) { 
+	int r = x%m;		// could also just have:
+	return r<0 ? r+m : r;      // return (x%m + m)%m; 
+
+} 
+/*************************************************
+** firstLetter- searches for a given letter in our puzzle
+** Parameters:
+	** letter- letter to search for
+	** puzzle- our MxN table of letters
+	** matchPosition- records all the (row,col) matches for letter in puzzle
+	** int M
+	** int N
+** Returns true if any match was found, else false
+*************************************************/
+bool firstLetter(char& letter, vector<string>& puzzle, vector<vector<int>>& matchPosition, int& M, int& N){
+	bool foundndMatches = false; int k = 0;
+	for(int i = 0; i < M; i++ ){
+		for(int j = 0; j < N; j++ ){
+			if(letter == puzzle[i][j]){
+				vector<int> indices(2);
+				indices[0] = i; indices[1] = j; // record the row and column indices
+				matchPosition.push_back(indices);  
+				k++;
+                foundndMatches = true;  // note: foundMatches=true iff matchPosition is not empty
+			}
+		}
+	}
+
+	return foundndMatches ;
+}
+
+/**********************************************************************************************************************
+** secondLetter- searches for a given letter, in the neighborhood of a given starting position in our puzzle
+				 A neighborhood is bounded by the edges of our MxN table (NO_WRAP)
+** Parameters:
+	** startPos- starting position (i,j) (we look for the specified letter in the neighborhoos of this position)
+	** matchPosition- records all the (row,col) matches for the letter in the neighborhoos of startPos
+	** direc- records the direction of movement from our startPos to the position of the match for letter
+	   For ex: if startPos=(3,5) and the letter position is (4,4), then direction of movement will be (1,-1)
+	** puzzle- our MxN table of letters
+	** letter- letter to search for 
+	** int M
+	** int N
+** Returns true if any match was found, else false
+***********************************************************************************************************************/
+bool secondLetter(vector<int>& startPos, vector<vector<int>>& matchPosition, vector<vector<int>>& direc, vector<string>& puzzle, char& letter, int M, int N){
+	bool foundMatches = false;
+	int m = startPos[0]; int n= startPos[1];
+
+	for(int i = -1; i <= 1; i++ ){
+		for(int j = -1; j <=1; j++ ){
+			if(m+i>=0 & m+i<M & n+j>=0 & n+j<N){
+				if(i!=0 | j!=0)	{   // make sure we are not at the startPos
+					if(puzzle[m+i][n+j]==letter){
+						vector<int> indices(2);
+						indices[0] = m+i; indices[1] = n+j; // record the row and column indices
+						matchPosition.push_back(indices);
+						vector<int> arrow(2);
+						arrow[0]= i; arrow[1]= j;     // record the direction of the movement
+						direc.push_back(arrow);
+						foundMatches = true;   // note: foundMatches=true iff matchPosition & direc are not empty
+					}
+				}
+			}
+		}
+	}
+	
+	return 	foundMatches;	
+}
+
+/**********************************************************************************************************************
+** secondLetterWrap- searches for a given letter, in the neighborhood of a given starting position in our puzzle
+					 A neighborhood now allows letters to wrap around the edges of our MxN table (WRAP)
+** Parameters:
+	** startPos- starting position (i,j) (we look for the specified letter in the neighborhoos of this position)
+	** matchPosition- records all the (row,col) matches for the letter in the neighborhoos of startPos
+	** direc- records the direction of movement from our startPos to the position of the match for letter,
+			  the position of the letter is the position BEFORE we use the mod function it
+			  (that is ignoring the edges of the table, as if they weren't there)
+	** puzzle- our MxN table of letters
+	** letter- letter to search for 
+	** int M
+	** int N
+** Returns true if any match was found, else false
+***********************************************************************************************************************/
+bool secondLetterWrap(vector<int>& startPos, vector<vector<int>>& matchPosition, vector<vector<int>>& direc, vector<string>& puzzle, char& letter, int M, int N){
+	bool foundMatches = false;
+	int m = startPos[0]; int n= startPos[1];
+
+		for(int i = -1; i <=1; i++ ){
+			for(int j = -1; j <=1; j++ ){
+				if(i!=0 | j!=0){  // make sure we are not at the startPos
+					if(m+i>=0 & m+i<M & n+j>=0 & n+j<N){ // match is within edges og our table
+						if(puzzle[m+i][n+j]==letter){   
+							vector<int> indices(2);
+							indices[0] = m+i; indices[1] = n+j; // record the row and column indices
+							matchPosition.push_back(indices); 
+							vector<int> arrow(2);
+							arrow[0]= i; arrow[1]= j;     // record the direction of the movement
+							direc.push_back(arrow);
+							foundMatches = true;	// note: foundMatches=true iff matchPosition & direc are not empty
+						}
+					}
+					else{  
+						int wrap_i=mod(m+i,M); int wrap_j = mod(n+j,N); // match requires wrapping
+						if(puzzle[wrap_i][wrap_j]==letter){
+							vector<int> indices(2);
+							indices[0] = wrap_i; indices[1] = wrap_j; // record the row and column indices
+							matchPosition.push_back(indices); 
+							vector<int> arrow(2);
+							arrow[0]= i; arrow[1]= j;     // record the direction of the movement
+							direc.push_back(arrow);
+							foundMatches = true;       // note: foundMatches=true iff matchPosition & direc are not empty
+						}		
+					}
+				}
+			}	
+		}
+
+	return foundMatches;
+}
+
+/********************************************************************************************************************************************
+** direction- searches for a given letter, positioned with one or zero steps in the horizontal and vertical direction from our startPos
+				Doesn't allow wrapping (NO_WRAP)
+** Parameters:
+	** startPos- starting position (i,j)
+	** hor- equals 1, 0, or -1, specifies the difference between the i position of the next letter to examine in our table and the i position of our startPos
+	** vert- equals 1, 0, or -1, specifies the difference between the j position of the next letter to examine in our table and the j position of our startPos
+	** letterIndex- index of the letter in the word
+	** i_0- row position of the first letter of the word
+	** j_0- col position of the first letter of the word
+	** puzzle- our MxN table of letters
+	** word- word we are searching for in puzzle 
+	** int M
+	** int N
+** Returns true if there was a full match to word in puzzle, not allowing wrapping
+************************************************************************************************************************************************/
+bool direction(vector<int>& startPos, int& hor, int& vert, int& letterIndex, int& i_0, int& j_0, vector<string>& puzzle, string& word, int& M, int& N){
+	int m = startPos[0]; int n= startPos[1];
+	char letter = word[letterIndex];
+	if(m+hor<0 | m+hor==M | n+vert <0 | n+vert==N){ // went outside the puzzle
+		return false;}
+	else if(puzzle[m+hor][n+vert] !=letter){ // next puzzle letter doesn’t match
+		return false;}
+	else if(letterIndex == word.length()-1){ //next letter matches & is the last one
+		cout<<"("<<i_0<<","<<j_0<<") , ("<<m+hor<<","<<n+vert<<")"<<"\n";
+		return true;}
+	else{ // next letter matches, but it is not the last one
+		startPos[0] += hor; startPos[1] += vert;  //update starting position
+		letterIndex++; 	
+		return direction(startPos, hor, vert, letterIndex, i_0, j_0, puzzle, word, M, N);
+	}
+}
+/********************************************************************************************************************************************
+** directionWrap- searches for a given letter, positioned with one or zero steps in the horizontal and vertical direction from our startPos
+				  Allows wrapping (WRAP)
+** Parameters:
+	** startPos- starting position (i,j)
+	** hor- equals 1, 0, or -1, specifies the difference between the i position of the next letter to examine in our table and the i position of our startPos
+	** vert- equals 1, 0, or -1, specifies the difference between the j position of the next letter to examine in our table and the j position of our startPos
+		As with secondLetterWrap we ignore the edges of the table and treat them as if they weren't there
+	** letterIndex- index of the letter in the word
+	** i_0- row position of the first letter of the word
+	** j_0- col position of the first letter of the word
+	** puzzle- our MxN table of letters
+	** word- word we are searching for in puzzle 
+	** int M
+	** int N
+** Returns true if there was a full match to word in puzzle, allowing wrapping
+************************************************************************************************************************************************/
+bool directionWrap(vector<int>& startPos, int& hor, int& vert, int& letterIndex, int& i_0, int& j_0, vector<string>& puzzle, string& word, int& M, int& N){
+	int m = startPos[0]; int n= startPos[1];
+	int wrap_i=mod(m+hor,M); int wrap_j = mod(n+vert,N);
+	char letter = word[letterIndex];
+	if(puzzle[wrap_i][ wrap_j] !=letter){ // next puzzle letter doesn’t match
+		return false;}
+	else if(wrap_i== i_0 & wrap_j == j_0){
+		return false;} // letter matches, but it has the same position as the first letter of word (like in the "HIGH" example)
+	else if(letterIndex == word.length()-1){ //next letter matchs & is the last one
+		cout<<"("<<i_0<<","<<j_0<<") , ("<<wrap_i<<","<<wrap_j<<")"<<"\n";
+		return true;}
+	else{ // next letter matches, but it is not the last one
+		startPos[0] = wrap_i; startPos[1] = wrap_j;  //update starting position
+		letterIndex++;
+		return directionWrap(startPos, hor, vert, letterIndex, i_0, j_0, puzzle, word, M, N );
+	}
+}
+
+int main() {
+
+	bool didItWork = false;
+	string answer = "Y";
+	int counter = 1;
+	vector<string> list;
+/*	
+	cout<<"Your current working directory is:\n";
+	char *path = NULL;
+	path = getcwd(NULL, 0); // or _getcwd
+	if ( path != NULL)
+		printf("%s\n", path);
+	cout<<"\nPlease include your data file in this directory\n";
+*/
+	while(answer== "Y" | answer == "y"){
+			string file_name;
+			cout<<"Input file name: ";
+			if(counter == 1){
+				cout<<"(for example: inputData.txt)\n";
+				counter =2;}
+
+			cin>>file_name;
+
+			string x;
+			ifstream fin;
+			fin.open( file_name );
+
+			if (fin.is_open()) {
+				didItWork= true;
+				while (fin >> x)
+					list.push_back(x);
+
+					fin.close();
+					answer = "N";
+			}
+			 else{
+				 cout<<"File name doesn't work.\nWant to try again? (Y/N)\n";
+				 cin>>answer;
+			 }
+		}
+
+		if(!didItWork)
+			return 0;
+
+		cout<<"\nRESULTS:\n\n";
+	// Setting up the variables we need:
+		int M = atoi( list[0].c_str() );
+		int N = atoi( list[1].c_str() );
+		int p = atoi( list[3+M].c_str() );
+
+		vector<string> puzzle(M);
+		for(int i =0; i< M; i++)
+			puzzle[i] = list[2+i];
+		
+		bool swap = false;
+		if(list[2+M]=="wrap" | list[2+M]=="WRAP")
+			swap = true;
+
+		vector<string> words(p);
+		for(int i =0; i< p; i++){
+			words[i] = list[4+M+i];
+		}           
+
+if(swap==false){
+	for(int numRow=0; numRow < p; numRow++){ //all words
+		string word = words[numRow];
+		vector<vector<int>> firstLetterPosition;
+
+		if(firstLetter(word[0], puzzle, firstLetterPosition, M, N)){ //first letter was found
+			if(word.length() == 1)
+				cout<<"("<<firstLetterPosition[0][0]<<","<<firstLetterPosition[0][1]<<") , ("
+						 <<firstLetterPosition[0][0]<<","<<firstLetterPosition[0][1]<<")\n";
+			else{ //word length >1
+					char letter = word[1];
+					bool fullMatch = false;
+					for(int k =0; k< firstLetterPosition.size(); k++){ //for every first letter match, get its respective second letter matches
+						vector<vector<int>> secondLetterPosition;
+						vector<vector<int>> direc;
+						
+						if(secondLetter(firstLetterPosition[k], secondLetterPosition, direc, puzzle, letter, M, N)){
+							int i_0 = firstLetterPosition[k][0]; int j_0 = firstLetterPosition[k][1];
+							if(word.length()==2){
+								cout<<"("<<i_0<<","<<j_0<<") , ("<<secondLetterPosition[0][0]<<","<<secondLetterPosition[0][1]<<")\n";
+								fullMatch = true;
+								break; // word was found so no need to keep going, move to the next word in the list
+							}
+							else{ // word length > 2
+									for(int i=0; i<secondLetterPosition.size(); i++){ // For each second letter match, given one fixed first letter match
+										int hor=secondLetterPosition[i][0] - i_0;
+										int vert = secondLetterPosition[i][1] - j_0;
+										int letterIndex = 2;
+										if(direction(secondLetterPosition[i], hor, vert, letterIndex, i_0, j_0, puzzle,word,  M, N)){
+											fullMatch = true;
+											break;// word was found so no need to keep going, move to the next word in the list
+										}
+									}
+								}
+						}
+					} //for each one of our first letter matches, there was no full word match
+					if(!fullMatch)
+						cout<<"NOT FOUND\n";
+			}//word length >1 second brace
+		}
+		else // first letter was not found in our table
+			cout<<"NOT FOUND\n";
+	} //all words second brace
+}
+else{ //if swap is true
+	for(int numRow=0; numRow < p; numRow++){ //all words
+		string word = words[numRow];
+		vector<vector<int>> firstLetterPosition;
+
+		if(firstLetter(word[0], puzzle, firstLetterPosition, M, N)){ //first letter found
+			if(word.length() == 1)
+				cout<<"("<<firstLetterPosition[0][0]<<","<<firstLetterPosition[0][1]<<") , ("
+						 <<firstLetterPosition[0][0]<<","<<firstLetterPosition[0][1]<<")\n";
+			else{ //word length >1
+					char letter = word[1];
+					bool fullMatch = false;
+					for(int k =0; k< firstLetterPosition.size(); k++){ //for every first letter match, get its respective second letter matches
+						vector<vector<int>> secondLetterPosition;
+						vector<vector<int>> direc;
+
+						if(secondLetterWrap(firstLetterPosition[k], secondLetterPosition, direc, puzzle, letter, M, N)){
+							int i_0 = firstLetterPosition[k][0]; int j_0 = firstLetterPosition[k][1];
+							if(word.length()==2){
+								cout<<"("<<i_0<<","<<j_0<<") , ("<<secondLetterPosition[0][0]<<","<<secondLetterPosition[0][1]<<")\n";
+								fullMatch = true;
+								break; // word was found so no need to keep going, move to the next word in the list
+							}
+							else{
+									for(int i=0; i<secondLetterPosition.size(); i++){ // For each second letter match, given one fixed first letter match
+										int hor=secondLetterPosition[i][0] - i_0;
+										int vert = secondLetterPosition[i][1] - j_0;
+										int letterIndex = 2;
+										if(directionWrap(secondLetterPosition[i], hor, vert, letterIndex, i_0, j_0, puzzle,word,  M, N)){
+											fullMatch = true;
+											break;// word was found so no need to keep going, move to the next word in the list
+										}
+									}
+								}
+						}
+					} //for each one of our first letter matches, there was no full word match
+					if(!fullMatch)
+						cout<<"NOT FOUND\n";
+				}//word length >1 second brace
+		}
+	else // first letter was not found in our puzzle
+		cout<<"NOT FOUND\n";
+	} //all words second brace
+}
+
+return 0;
+}
