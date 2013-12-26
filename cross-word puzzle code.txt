@@ -29,7 +29,7 @@ int mod(int x, int m) {
 	** int M
 	** int N
 ** Returns true if any match was found, else false
-*************************************************/
+************************************************/
 bool firstLetter(char& letter, vector<string>& puzzle, vector<vector<int>>& matchPosition, int& M, int& N){
 	bool foundndMatches = false; int k = 0;
 	for(int i = 0; i < M; i++ ){
@@ -159,7 +159,7 @@ bool direction(vector<int>& startPos, int& hor, int& vert, int& letterIndex, int
 	char letter = word[letterIndex];
 	if(m+hor<0 | m+hor==M | n+vert <0 | n+vert==N){ // went outside the puzzle
 		return false;}
-	else if(puzzle[m+hor][n+vert] !=letter){ // next puzzle letter doesn’t match
+	else if(puzzle[m+hor][n+vert] !=letter){ // next puzzle letter doesnï¿½t match
 		return false;}
 	else if(letterIndex == word.length()-1){ //next letter matches & is the last one
 		cout<<"("<<i_0<<","<<j_0<<") , ("<<m+hor<<","<<n+vert<<")"<<"\n";
@@ -191,7 +191,7 @@ bool directionWrap(vector<int>& startPos, int& hor, int& vert, int& letterIndex,
 	int m = startPos[0]; int n= startPos[1];
 	int wrap_i=mod(m+hor,M); int wrap_j = mod(n+vert,N);
 	char letter = word[letterIndex];
-	if(puzzle[wrap_i][ wrap_j] !=letter){ // next puzzle letter doesn’t match
+	if(puzzle[wrap_i][ wrap_j] !=letter){ // next puzzle letter doesnï¿½t match
 		return false;}
 	else if(wrap_i== i_0 & wrap_j == j_0){
 		return false;} // letter matches, but it has the same position as the first letter of word (like in the "HIGH" example)
