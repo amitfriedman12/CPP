@@ -1,0 +1,4 @@
+This code takes in as input a set of 2D (x,y) points, and an angle alpha (0<alpha<360).
+It's goal is to "radar" across the 2D plane,
+and find the angle of the ray, which captures the max number of 2D points as possible
+within a polar angle of width alpha.
